@@ -1,0 +1,6 @@
+*~
+*swp
+data/*
+embeddings/*
+*pyc
+.idea/*
