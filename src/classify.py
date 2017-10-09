@@ -10,7 +10,7 @@ from random import randint
 import numpy as np
 import logging
 from scipy.sparse import csr_matrix
-
+from utils import get_class_labels
 
 logger = logging.getLogger()
 logger.setLevel("INFO")
@@ -57,7 +57,7 @@ def deep_kernel_svm_classify (X_train, X_test, Y_train, Y_test, subgraph_kernel)
     print classification_report(Y_test, Y_pred)
 
 
-def perform_classification (corpus_dir, extn, embedding_fname, class_labels):
+def perform_classification (corpus_dir, extn, embedding_fname, class_labels_fname):
     gensim_model = gensim.models.KeyedVectors.load_word2vec_format(fname=embedding_fname)
     logging.info('Loaded gensim model of subgraph vectors')
 
@@ -77,7 +77,7 @@ def perform_classification (corpus_dir, extn, embedding_fname, class_labels):
     logging.info('X (sample) matrix shape: {}'.format(X.shape))
 
 
-    Y = np.array(class_labels)
+    Y = np.array(get_class_labels(wlk_files, class_labels_fname))
     logging.info('Y (label) matrix shape: {}'.format(Y.shape))
 
     seed = randint(0, 1000)

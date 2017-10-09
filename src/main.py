@@ -7,7 +7,7 @@ from test import test_embeddings
 from classify import perform_classification
 
 from make_subgraph2vec_corpus import dump_subgraph2vec_sentences
-from utils import get_files, get_class_labels
+from utils import get_files
 
 from joblib import Parallel,delayed
 import time
@@ -17,7 +17,8 @@ logger.setLevel("INFO")
 
 def train_skipgram (corpus_dir, extn, learning_rate, embedding_size, num_negsample, epochs, batch_size, output_dir,valid_size):
 
-    op_fname = os.path.join(output_dir, 'final_embeddings.txt')
+    op_fname = '_'.join([os.path.basename(corpus_dir), 'dims', str(embedding_size), 'epochs', str(epochs),'embeddings.txt'])
+    op_fname = os.path.join(output_dir, op_fname)
     if os.path.isfile(op_fname):
         logging.info('The embedding file: {} is already present, hence NOT training skipgram model '
                      'for subgraph vectors'.format(op_fname))
@@ -74,10 +75,9 @@ def main(args):
     graph_files = get_files(dirname=corpus_dir, extn='.gexf', max_files=0)
     logging.info('Loaded {} graph file names form {}'.format(len(graph_files),corpus_dir))
 
-    class_labels = get_class_labels(graph_files, class_labels_fname)
-
     t0 = time.time()
     Parallel(n_jobs=n_cpus)(delayed(dump_subgraph2vec_sentences)(f, wlk_h, label_filed_name) for f in graph_files)
+    # for f in graph_files: dump_subgraph2vec_sentences (f, wlk_h, label_filed_name)
     logging.info('Dumped subgraph2vec sentences for all {} graphs in {} in {} sec'.format(len(graph_files),
                                                                                           corpus_dir, round(time.time()-t0)))
 
@@ -85,7 +85,7 @@ def main(args):
     embedding_fname = train_skipgram(corpus_dir, wl_extn, learning_rate, embedding_size, num_negsample, epochs, batch_size, output_dir,valid_size)
     logging.info('Trained the skipgram model in {} sec.'.format(round(time.time()-t0, 2)))
 
-    perform_classification (corpus_dir, wl_extn, embedding_fname, class_labels)
+    perform_classification (corpus_dir, wl_extn, embedding_fname, class_labels_fname)
 
 
 
@@ -93,23 +93,20 @@ def main(args):
 def parse_args():
     args = argparse.ArgumentParser("subgraph2vec")
     # args.add_argument("--corpus", default = "wlfile/DrebinADGs_5k_malware/",
-    args.add_argument("--corpus", default = "/mnt/anna_laptop/subgraph2vec/kdd_datasets/dir_graphs/ptc",
+    args.add_argument("--corpus", default = "../data/kdd_datasets/ptc",
                       help="Path to directory containing graph files to be used for graph classification or clustering")
 
-    args.add_argument('--class_labels_file_name', default='/mnt/anna_laptop/subgraph2vec/kdd_datasets/ptc.Labels',
+    args.add_argument('--class_labels_file_name', default='../data/kdd_datasets/ptc.Labels',
                       help='File name containg the name of the sample and the class labels')
 
-    args.add_argument("--max_files",type=int,
-                      default=20, help="Number of files to be loaded from the corpus. 0 = load all files ")
-
     # args.add_argument("--output_dir", default = "embeddings/DrebinADGs_5k_malware/",
-    args.add_argument("--output_dir", default = ".",
+    args.add_argument("--output_dir", default = "../embeddings",
                       help="Path to directory for storing output embeddings")
 
     args.add_argument("--batch_size", default=128, type=int,
                       help="Number of samples per training batch")
 
-    args.add_argument("--epochs", default=10, type=int,
+    args.add_argument("--epochs", default=3, type=int,
                       help="Number of iterations the whole dataset of graphs is traversed")
 
     args.add_argument("--embedding_size", default=32, type=int,
@@ -124,8 +121,8 @@ def parse_args():
     args.add_argument("--valid_size", default=10, type=int,
                       help="Number of samples to validate training process from time to time")
 
-    # args.add_argument("--n_cpus", default=psutil.cpu_count(), type=int,
-    args.add_argument("--n_cpus", default=20, type=int,
+    args.add_argument("--n_cpus", default=psutil.cpu_count(), type=int,
+    # args.add_argument("--n_cpus", default=1, type=int,
                       help="Maximum no. of cpu cores to be used for WL kernel feature extraction from graphs")
 
     args.add_argument("--wlk_h", default=2, type=int, help="Height of WL kernel")

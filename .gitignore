@@ -1,6 +1,6 @@
 *~
 *swp
-data/*
-embeddings/*
+embeddings/*txt
 *pyc
 .idea/*
+data/*

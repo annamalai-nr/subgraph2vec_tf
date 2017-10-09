@@ -1,13 +1,16 @@
 import networkx as nx
-import os,sys,json
+import os,sys,json,logging
 from time import time
 from networkx.readwrite import json_graph
 from joblib import Parallel,delayed
 from utils import get_files
 
+logger = logging.getLogger()
+logger.setLevel("INFO")
+
 def read_from_json_gexf(fname=None,label_field_name='APIs',conv_undir = False):
     if not fname:
-        print 'no valid path or file name'
+        logging.error('no valid path or file name')
         return None
     else:
         try:
@@ -22,12 +25,12 @@ def read_from_json_gexf(fname=None,label_field_name='APIs',conv_undir = False):
                 g.add_node(n, attr_dict={'label': '-'.join(d[label_field_name].split('\n'))})
             g.add_edges_from(org_dep_g.edges_iter())
         except:
-            print "unable to load graph from file", fname
+            logging.error("unable to load graph from file: {}".format(fname))
             # return 0
-    print 'loaded {} a graph with {} nodes and {} egdes'.format(fname,g.number_of_nodes(),g.number_of_edges())
+    logging.debug('loaded {} a graph with {} nodes and {} egdes'.format(fname, g.number_of_nodes(),g.number_of_edges()))
     if conv_undir:
         g = nx.Graph (g)
-        print 'converted {} as undirected graph'.format (g)
+        logging.debug('converted {} as undirected graph'.format (g))
     return g
 
 
@@ -86,11 +89,11 @@ def dump_subgraph2vec_sentences (f, h, label_filed_name):
         opfname = f.replace('.gexf', '.WL' + str(h))
 
     if os.path.isfile(opfname):
-        print 'file: {} exists, hence skipping WL feature extraction'.format(opfname)
+        logging.info('file: {} exists, hence skipping WL feature extraction'.format(opfname))
         return
 
     T0 = time()
-    print 'processing ',f
+    logging.debug('processing ',f)
     g = read_from_json_gexf(f, label_filed_name)
     if not g:
         return
@@ -102,7 +105,7 @@ def dump_subgraph2vec_sentences (f, h, label_filed_name):
         opfname = f.replace('.gexf', '.WL' + str(h))
 
     dump_g_as_bow_infile (g,opfname, h=h)
-    print 'dumped wlk file in {} sec'.format(round(time()-T0,2))
+    logging.debug('dumped wlk file in {} sec'.format(round(time()-T0,2)))
 
 
 
