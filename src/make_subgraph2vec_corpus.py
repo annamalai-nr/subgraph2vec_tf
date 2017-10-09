@@ -3,6 +3,7 @@ import os,sys,json
 from time import time
 from networkx.readwrite import json_graph
 from joblib import Parallel,delayed
+from utils import get_files
 
 def read_from_json_gexf(fname=None,label_field_name='APIs',conv_undir = False):
     if not fname:
@@ -22,7 +23,7 @@ def read_from_json_gexf(fname=None,label_field_name='APIs',conv_undir = False):
             g.add_edges_from(org_dep_g.edges_iter())
         except:
             print "unable to load graph from file", fname
-            return 0
+            # return 0
     print 'loaded {} a graph with {} nodes and {} egdes'.format(fname,g.number_of_nodes(),g.number_of_edges())
     if conv_undir:
         g = nx.Graph (g)
@@ -78,29 +79,32 @@ def wlk_relabel(g,h):
     return g #relabled graph
 
 
-def process_single_fname (f, h):
+def dump_subgraph2vec_sentences (f, h, label_filed_name):
+    if f.endswith('json'):
+        opfname = f.replace('.json','.WL'+str(h))
+    else:
+        opfname = f.replace('.gexf', '.WL' + str(h))
+
+    if os.path.isfile(opfname):
+        print 'file: {} exists, hence skipping WL feature extraction'.format(opfname)
+        return
+
     T0 = time()
     print 'processing ',f
-    g = read_from_json_gexf(f)
+    g = read_from_json_gexf(f, label_filed_name)
     if not g:
         return
     g = wlk_relabel(g,h)
-    file_name = f.split("/")[-1]
-    target_path = "wlfile/adgs_24k_malware/"
-    print target_path+file_name+'.WL'+str(h)
-    dump_g_as_bow_infile (g,opfname=target_path+file_name+'.WL'+str(h), h=h)
+
+    if f.endswith('json'):
+        opfname = f.replace('.json','.WL'+str(h))
+    else:
+        opfname = f.replace('.gexf', '.WL' + str(h))
+
+    dump_g_as_bow_infile (g,opfname, h=h)
     print 'dumped wlk file in {} sec'.format(round(time()-T0,2))
 
-def get_files_to_process(dirname, extn):
-    files_to_process = [os.path.join(dirname, f) for f in os.listdir(dirname) if f.endswith(extn)]
-    for root, dirs, files in os.walk(dirname):
-        for f in files:
-            if f.endswith(extn):
-                files_to_process.append(os.path.join(root, f))
 
-    files_to_process = list(set(files_to_process))
-    files_to_process.sort()
-    return files_to_process
 
 if __name__ == '__main__':
     # if sys.argv[1] in ['-h','--help']:
@@ -112,9 +116,9 @@ if __name__ == '__main__':
     n_cpus = 36  # number of cpus to be used for multiprocessing
     extn = '.gexf'
 
-    files_to_process = get_files_to_process(dirname = graph_dir, extn = extn)
+    files_to_process = get_files(dirname = graph_dir, extn = extn)
     print files_to_process
     raw_input('have to procees a total of {} files with {} parallel processes... hit any key to proceed...'.
               format(len(files_to_process), n_cpus))
 
-    Parallel(n_jobs=n_cpus)(delayed(process_single_fname)(f, h) for f in files_to_process)
+    Parallel(n_jobs=n_cpus)(delayed(dump_subgraph2vec_sentences)(f, h) for f in files_to_process)

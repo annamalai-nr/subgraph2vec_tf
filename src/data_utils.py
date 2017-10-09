@@ -10,7 +10,7 @@ from utils import get_files
 
 
 class Corpus(object):
-    def __init__(self, corpus_folder=None, sample = 0.001, max_files=0):
+    def __init__(self, corpus_folder=None, sample = 0.001, extn='WL2', max_files=0):
         assert corpus_folder != None, "please specify the corpus folder"
         self.sample = sample
         self.corpus_folder = corpus_folder
@@ -19,6 +19,7 @@ class Corpus(object):
         self.epoch_flag = 0
         self.max_files = max_files
         self.doc_shuffle = []
+        self.extn = extn
 
 
 
@@ -59,7 +60,7 @@ class Corpus(object):
 
 
     def scan_and_load_corpus(self):
-        self.doc_list = get_files(self.corpus_folder, extn='.WL2', max_files=self.max_files)
+        self.doc_list = get_files(self.corpus_folder, extn=self.extn, max_files=self.max_files)
         word_to_id_map = self.scan_corpus()
         # self.get_reject_prob()
 

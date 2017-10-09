@@ -25,5 +25,11 @@ def save_embeddings(corpus, final_embeddings, embedding_size, opfname):
         for l in lines_to_write:
             print >>fh, l
 
+
+def get_class_labels(graph_files, class_labels_fname):
+    graph_to_class_label_map = {l.split()[0]: int(l.split()[1].strip()) for l in open (class_labels_fname)}
+    labels = [graph_to_class_label_map[os.path.basename(g)] for g in graph_files]
+    return labels
+
 if __name__ == '__main__':
     print 'nothing to do'

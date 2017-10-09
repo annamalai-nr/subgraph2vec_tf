@@ -104,11 +104,11 @@ class Skipgram(object):
                 for j in xrange(len(valid_dataset)):
                     top_k = 10  # Number of nearest neighbours
                     nearest = (-sim[j, :]).argsort()[1:top_k + 1]
-                    log_str = 'Nearest to %s *****' % corpus._id_to_word_map[valid_dataset[j]]
-                    for k in xrange(top_k):
-                        close_word = corpus._id_to_word_map[nearest[k]]
-                        log_str = '%s %s ***' % (log_str, close_word)
-                        logging.info(log_str)
+                    log_str = '***** Nearest to %s ***** \n' % corpus._id_to_word_map[valid_dataset[j]]
+                    close_words = [corpus._id_to_word_map[nearest[k]] for k in xrange(top_k)]
+                    log_str += '\n'.join(close_words)
+                    log_str += '\n*****'
+                    logging.info(log_str)
 
             #done with training
             final_embeddings = self.normalized_embeddings.eval()
