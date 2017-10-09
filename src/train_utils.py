@@ -41,8 +41,9 @@ class Skipgram(object):
                                    ))
 
                 global_step = tf.Variable(0, trainable=False)
-                learning_rate = tf.train.exponential_decay(self.learning_rate, global_step, 100000, 0.96, staircase=True)
-                learning_rate = tf.maximum(learning_rate,0.001)
+                learning_rate = tf.train.exponential_decay(self.learning_rate,
+                                                           global_step, 100000, 0.96, staircase=True) #linear decay over time
+                learning_rate = tf.maximum(learning_rate,0.001) #cannot go below 0.001 to ensure at least a minimal learning
                 optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss,global_step=global_step)
 
                 norm = tf.sqrt(tf.reduce_mean(tf.square(doc_embeddings), 1, keep_dims=True))
@@ -79,11 +80,11 @@ class Skipgram(object):
 
             loss = 0
 
-            for i in range(self.num_steps):
+            for i in xrange(self.num_steps):
 
                 step = 0
                 while corpus.epoch_flag == False:
-                    batch_data, batch_labels = corpus.generate_batch_from_file(batch_size)# get center and context
+                    batch_data, batch_labels = corpus.generate_batch_from_file(batch_size)# get (target,context) wordid tuples
 
                     feed_dict = {self.batch_inputs:batch_data,self.batch_labels:batch_labels}
                     _,loss_val = sess.run([self.optimizer,self.loss],feed_dict=feed_dict)
@@ -93,22 +94,23 @@ class Skipgram(object):
                     if step % 10000 == 0:
                         if step > 0:
                             average_loss = loss/step
-                            print 'Epoch: %d : Average loss for step: %d : %f'%(i,step,average_loss)
+                            logging.info( 'Epoch: %d : Average loss for step: %d : %f'%(i,step,average_loss))
                     step += 1
+
                 corpus.epoch_flag = False
-                print '#########################   Epoch: %d :  %f   #####################' % (i, loss/step)
+                logging.info('#########################   Epoch: %d :  %f   #####################' % (i, loss/step))
                 loss = 0
                 sim = self.similarity.eval()
-                for j in range(len(valid_dataset)):
-                    top_k = 8  # Number of nearest neighbours
+                for j in xrange(len(valid_dataset)):
+                    top_k = 10  # Number of nearest neighbours
                     nearest = (-sim[j, :]).argsort()[1:top_k + 1]
                     log_str = 'Nearest to %s *****' % corpus._id_to_word_map[valid_dataset[j]]
-                    for k in range(top_k):
+                    for k in xrange(top_k):
                         close_word = corpus._id_to_word_map[nearest[k]]
                         log_str = '%s %s ***' % (log_str, close_word)
-                    print log_str
+                        logging.info(log_str)
+
+            #done with training
             final_embeddings = self.normalized_embeddings.eval()
             final_weights = self.normalized_weights.eval()
         return final_embeddings,final_weights
-
-

@@ -6,35 +6,28 @@ import operator
 from collections import defaultdict
 from random import shuffle
 from pprint import pprint
+from utils import get_files
 
 
 class Corpus(object):
-    def __init__(self, corpus_file=None,sample = 0.001):
-        assert corpus_file != None, "please give corpus file"
+    def __init__(self, corpus_folder=None, sample = 0.001, max_files=0):
+        assert corpus_folder != None, "please specify the corpus folder"
         self.sample = sample
-        self.corpus_file = corpus_file
-        self.node_index = 0
-        self.doc_index = 0
+        self.corpus_folder = corpus_folder
+        self.subgraph_index = 0
+        self.graph_index = 0
         self.epoch_flag = 0
-        self.doc_list = self.get_files_to_process(corpus_file,extn='.WL2')
+        self.max_files = max_files
         self.doc_shuffle = []
 
-    def get_files_to_process(self, dirname, extn='.WL2'):
-        files_to_process = [os.path.join(dirname, f) for f in os.listdir(dirname) if f.endswith(extn)]
-        for root, dirs, files in os.walk(dirname):
-            for f in files:
-                if f.endswith(extn):
-                    files_to_process.append(os.path.join(root, f))
 
-        files_to_process = list(set(files_to_process))
-        files_to_process.sort()
-        return files_to_process[:100]
+
 
     def scan_corpus(self):
         word_to_freq_map = defaultdict(int) #word to freq map
         for fname in self.doc_list:
-            sentences = [l.split()[0] for l in open(fname).xreadlines()] #just take the first word of every sentence
-            for w in sentences:
+            target_words = (l.split()[0] for l in open(fname).xreadlines()) #just take the first word of every sentence
+            for w in target_words:
                 word_to_freq_map[w] += 1
 
         word_to_id_map = {w:i for i,w in enumerate(word_to_freq_map.iterkeys())}
@@ -44,7 +37,6 @@ class Corpus(object):
         id_to_word_map[len(word_to_id_map)-1] = "UNK"
         word_to_freq_map["UNK"] = 1
 
-
         self._word_to_freq_map = word_to_freq_map
         self._word_to_id_map = word_to_id_map
         self._id_to_word_map = id_to_word_map
@@ -53,8 +45,8 @@ class Corpus(object):
 
         sorted_word_to_freq_map = sorted(self._word_to_freq_map.items(), key=operator.itemgetter(1)) #least to most freq word
         sorted_word_ids = [self._word_to_id_map[word] for word,freq in sorted_word_to_freq_map]
-        high_freq_word_ids = sorted_word_ids[-50:-1]
-        low_freq_words_ids = sorted_word_ids[:50]
+        high_freq_word_ids = sorted_word_ids[-50:] #just getting top 50 most freq subgraphs
+        low_freq_words_ids = sorted_word_ids[:50] #just getting top 50 least freq
         self.high_freq_word_ids = high_freq_word_ids
         self.low_freq_word_ids = low_freq_words_ids
 
@@ -63,15 +55,15 @@ class Corpus(object):
             word_id_freq_map_as_list.append(self._word_to_freq_map[self._id_to_word_map[i]])
         self.word_id_freq_map_as_list = word_id_freq_map_as_list
 
-
         return self._word_to_id_map
 
 
-    def all_sentences(self):
-        tokens = self.scan_corpus()
+    def scan_and_load_corpus(self):
+        self.doc_list = get_files(self.corpus_folder, extn='.WL2', max_files=self.max_files)
+        word_to_id_map = self.scan_corpus()
         # self.get_reject_prob()
 
-        logging.info('vocabulary size: %d' % len(tokens))
+        logging.info('vocabulary size: %d' % len(word_to_id_map))
         logging.info('number of documents: %d' % len(self.doc_list))
         logging.info('number of words to be trained: %d' % self._wordcount)
 
@@ -95,20 +87,20 @@ class Corpus(object):
         targetword_ids = []
         contextword_ids = []
 
-        doc_name = self.doc_list[self.doc_shuffle[self.doc_index]]
+        doc_name = self.doc_list[self.doc_shuffle[self.graph_index]]
         doc = open(doc_name).readlines()
-        while self.node_index >= len(doc):
-            self.node_index = 0
-            self.doc_index += 1
-            if self.doc_index == len(self.doc_list):
-                self.doc_index = 0
+        while self.subgraph_index >= len(doc):
+            self.subgraph_index = 0
+            self.graph_index += 1
+            if self.graph_index == len(self.doc_list):
+                self.graph_index = 0
                 np.random.shuffle(self.doc_shuffle)
                 self.epoch_flag = True
-            doc_name = self.doc_list[self.doc_shuffle[self.doc_index]]
+            doc_name = self.doc_list[self.doc_shuffle[self.graph_index]]
             doc = open(doc_name).readlines()
 
         while len(contextword_ids) < batch_size:
-            line_id = self.node_index
+            line_id = self.subgraph_index
 
             target_and_context = doc[line_id].rstrip().split()
             context_words = target_and_context[1:]
@@ -124,15 +116,15 @@ class Corpus(object):
             # print doc[line_id].rstrip().split()[0]
             # raw_input()
 
-            self.node_index+=1
-            while self.node_index == len(doc):
-                self.node_index = 0
-                self.doc_index += 1
-                if self.doc_index == len(self.doc_list):
-                    self.doc_index = 0
+            self.subgraph_index+=1
+            while self.subgraph_index == len(doc):
+                self.subgraph_index = 0
+                self.graph_index += 1
+                if self.graph_index == len(self.doc_list):
+                    self.graph_index = 0
                     np.random.shuffle(self.doc_shuffle)
                     self.epoch_flag = True
-                doc_name = self.doc_list[self.doc_shuffle[self.doc_index]]
+                doc_name = self.doc_list[self.doc_shuffle[self.graph_index]]
                 doc = open(doc_name).readlines()
 
         target_context_pairs = zip(targetword_ids, contextword_ids)
@@ -144,15 +136,6 @@ class Corpus(object):
 
         contextword_outputs = np.reshape(contextword_ids, [len(contextword_ids), 1])
 
-
         return targetword_ids,contextword_outputs
 
 
-def save_embeddings(corpus, final_embeddings, embedding_size, opfname):
-    lines_to_write = []
-    lines_to_write.append(str(corpus._vocabsize) + ' ' + str(embedding_size))
-    lines_to_write.extend([corpus._id_to_word_map[i] + ' ' +
-                           ' '.join(final_embeddings[i].astype('str').tolist()) for i in xrange(corpus._vocabsize)])
-    with open(opfname, 'w') as fh:
-        for l in lines_to_write:
-            print >>fh, l
