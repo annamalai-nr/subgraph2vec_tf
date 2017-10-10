@@ -12,8 +12,6 @@ It uses the following python packages:
 3. joblib (version <= 0.11)
 4. scikit-learn (+scipy, +numpy)
 
-Subgraph2vec is developed on top of "tensorflow" python package.
-
 #####  The procedure for setting up subgraph2vec is as follows:
 	1. git clone the repository (command: git clone https://github.com/MLDroid/subgraph2vec_tf.git )
 	2. untar the data.tar.gz tarball
@@ -63,12 +61,21 @@ Subgraph2vec is developed on top of "tensorflow" python package.
 				        time to time
 
 ## Contact ##
-In case of queries, please email: annamala002@e.ntu.edu.sg
+In case of queries, please email: annamala002@e.ntu.edu.sg OR XZHANG048@e.ntu.edu.sg
 
-#### Reference
+#### Reference 
+
+	Please consider citing the follow paper when you use this code.
 	@article{narayanansubgraph2vec,
 	  title={subgraph2vec: Learning Distributed Representations of Rooted Sub-graphs from Large Graphs},
 	  author={Narayanan, Annamalai and Chandramohan, Mahinthan and Chen, Lihui and Liu, Yang and Saminathan, Santhoshkumar}
 	}
+
+## Acknowledgements ##
+Thanks to Zhang Xinyi (https://github.com/XinyiZ001) for the support on coding/testing subgraph2vec TF version.
+
+
+
+
 
 
