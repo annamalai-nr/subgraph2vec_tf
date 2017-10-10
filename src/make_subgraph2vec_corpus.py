@@ -9,6 +9,13 @@ logger = logging.getLogger()
 logger.setLevel("INFO")
 
 def read_from_json_gexf(fname=None,label_field_name='APIs',conv_undir = False):
+    '''
+    Load the graph files (.gexf or .json only supported)
+    :param fname: graph file name
+    :param label_field_name: filed denoting the node label
+    :param conv_undir: convert to undirected graph or not
+    :return: graph in networkx format
+    '''
     if not fname:
         logging.error('no valid path or file name')
         return None
@@ -35,6 +42,12 @@ def read_from_json_gexf(fname=None,label_field_name='APIs',conv_undir = False):
 
 
 def get_graph_as_bow (g, h):
+    '''
+    Get subgraph2vec sentences from the goven graph
+    :param g: networkx graph
+    :param h: WL kernel height
+    :return: sentence of the format <target> <context1> <context2> ...
+    '''
     for n,d in g.nodes_iter(data=True):
         for i in xrange(0, h+1):
             center = d['relabel'][i]
@@ -49,19 +62,28 @@ def get_graph_as_bow (g, h):
 
 
             nei_list = NeisLabelsSameDeg + neis_labels_prev_deg + neis_labels_next_deg
+            try:
+                nei_list.append(d['relabel'][i-1]) #prev degree subgraph from the current node
+            except:
+                pass
+            try:
+                nei_list.append(d['relabel'][i+1]) #next degree subgraph from the current node
+            except:
+                pass
+
             nei_list = ' '.join (nei_list)
 
             sentence = center + ' ' + nei_list
             yield sentence
 
 
-def dump_g_as_bow_infile (g,opfname, h):
-    Sentences = get_graph_as_bow(g, h)
-    with open(opfname, 'w') as fh:
-        for w in Sentences:
-            print >>fh, w
-
 def wlk_relabel(g,h):
+    '''
+    Perform node relabeling (coloring) according 1-d WL relabeling process (refer Shervashidze et al (2009) paper)
+    :param g: networkx graph
+    :param h: height of WL kernel
+    :return: relabeled graph
+    '''
     for n in g.nodes_iter():
         g.node[n]['relabel'] = {}
 
@@ -83,6 +105,14 @@ def wlk_relabel(g,h):
 
 
 def dump_subgraph2vec_sentences (f, h, label_filed_name):
+    '''
+    Get WL features and make the subgraph2vec sentence of the format "<target> <context1> <context2> ..." and dump the
+    same into a text file.
+    :param f: gexf or json graph file name
+    :param h: height of WL kernel
+    :param label_filed_name: the node attribute that denotes node label
+    :return: None
+    '''
     if f.endswith('json'):
         opfname = f.replace('.json','.WL'+str(h))
     else:
@@ -104,7 +134,11 @@ def dump_subgraph2vec_sentences (f, h, label_filed_name):
     else:
         opfname = f.replace('.gexf', '.WL' + str(h))
 
-    dump_g_as_bow_infile (g,opfname, h=h)
+    subgraph2vec_sentences = get_graph_as_bow(g, h)
+    with open(opfname, 'w') as fh:
+        for w in subgraph2vec_sentences:
+            print >> fh, w
+
     logging.debug('dumped wlk file in {} sec'.format(round(time()-T0,2)))
 
 
