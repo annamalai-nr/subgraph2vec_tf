@@ -119,7 +119,7 @@ def dump_subgraph2vec_sentences (f, h, label_filed_name):
         opfname = f.replace('.gexf', '.WL' + str(h))
 
     if os.path.isfile(opfname):
-        logging.info('file: {} exists, hence skipping WL feature extraction'.format(opfname))
+        logging.debug('file: {} exists, hence skipping WL feature extraction'.format(opfname))
         return
 
     T0 = time()
