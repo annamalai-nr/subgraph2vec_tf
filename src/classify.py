@@ -117,7 +117,7 @@ def perform_classification (corpus_dir, extn, embedding_fname, class_labels_fnam
     logging.info('Y (label) matrix shape: {}'.format(Y.shape))
 
     seed = randint(0, 1000)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=seed)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=seed)
     logging.info('Train and Test matrix shapes: {}, {}, {}, {} '.format(X_train.shape, X_test.shape,
                                                                         Y_train.shape, Y_test.shape))
 
